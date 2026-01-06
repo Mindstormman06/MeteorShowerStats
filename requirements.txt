@@ -1,0 +1,5 @@
+requests
+flask
+nbt
+mcstatus
+nbtlib

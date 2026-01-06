@@ -1,0 +1,16 @@
+{
+    "site_title": "StatCrafter",
+    "server_name": "StatCrafter",
+    "server_ip": "0.0.0.0",
+    "ignore_name_prefixes": [
+        "bot_"
+    ],
+    "ignore_name_suffixes": [
+        "_fake"
+    ]
+    ,
+    "port": 5000,
+    "minecraft_server_address": "localhost",
+    "minecraft_server_port": 25565,
+    "timezone": "UTC"
+}
