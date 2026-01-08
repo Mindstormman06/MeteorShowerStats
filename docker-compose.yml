@@ -71,6 +71,6 @@ services:
         pip install -r requirements.txt --root-user-action=ignore &&
 
         echo 'Starting StatCrafter...' &&
-        python app.py
+        python -u app.py
         "
     restart: unless-stopped

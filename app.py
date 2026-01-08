@@ -72,14 +72,14 @@ def run_initial_processing():
     """
     Runs PlayerGrabber and MinecraftStatsHandler to process data when the app starts.
     """
-    print("Starting initial data processing...", flush=True)
+    print("Starting initial data processing...")
     
     latest_server_jar = None
     while not latest_server_jar:
         try:
             latest_server_jar = find_latest_jar("../versions")
         except:
-            print("trying again to find server jar", flush=True)
+            print("trying again to find server jar")
             time.sleep(5)
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
