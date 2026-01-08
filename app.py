@@ -438,8 +438,7 @@ def online_players():
 
 @app.route('/')
 def index():
-    level_dat_path = os.path.join("../world/", "level.dat")
-    minecraft_version = get_minecraft_version(level_dat_path)
+    minecraft_version = get_minecraft_version()
     players = load_data()
     return render_template('index.html', players=players, minecraft_version=minecraft_version, config=config_data)
 
