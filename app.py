@@ -110,6 +110,15 @@ def find_latest_jar(versions_dir="../versions"):
                 jar_path = os.path.join(parent_dir, f)
                 if jar_has_assets(jar_path):
                     return jar_path
+                
+    # ---------- Fallback: ../cache/patched_*.jar ----------
+    cache_dir = os.path.abspath(os.path.join(os.getcwd(), "..", "cache"))
+    if os.path.isdir(cache_dir):
+        for f in sorted(os.listdir(cache_dir), reverse=True):
+            if f.startswith("patched_") and f.endswith(".jar"):
+                jar_path = os.path.join(cache_dir, f)
+                if jar_has_assets(jar_path):
+                    return jar_path
 
     raise FileNotFoundError(
         "No Minecraft server JAR with assets/ found in versions/ or parent directory"

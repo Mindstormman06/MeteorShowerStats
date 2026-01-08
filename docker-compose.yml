@@ -8,8 +8,8 @@ services:
       - "24455:24455/udp"
     environment:
       EULA: "TRUE"
-      TYPE: "PAPER"
-      VERSION: "1.21.11"
+      TYPE: "FABRIC"
+      VERSION: "1.21.1"
       ENABLE_RECON: "true"
       RCON_PASSWORD: "test"
       MEMORY: "8192M"
