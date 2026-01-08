@@ -12,5 +12,6 @@
     "port": 5000,
     "minecraft_server_address": "localhost",
     "minecraft_server_port": 25565,
-    "timezone": "UTC"
+    "timezone": "UTC",
+    "offline_supported": false
 }
