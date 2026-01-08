@@ -68,7 +68,13 @@ class MinecraftStatsHandler:
             elif response.status_code == 404:
                 return "Error: UUID not found. Check if the UUID is correct."
             elif response.status_code == 204:
-                return "No content found. The UUID might not exist."
+                #"UUID not found, possible offline mode enabled"
+                data = {
+                    "name" : "Unknown account (offline)",
+                } 
+                self.username = data['name']
+                username_map[self.uuid] = self.username
+                return data 
             else:
                 return f"Error: {response.status_code} - {response.reason}"
         except requests.exceptions.RequestException as e:
@@ -105,6 +111,7 @@ class MinecraftStatsHandler:
 
     
     def get_minecraft_capes(self):
+        cape_url = None
         try:
             user_url = f"https://api.capes.dev/load/{self.uuid}/minecraft"
 
@@ -121,6 +128,8 @@ class MinecraftStatsHandler:
 
 
             # Download and save cape
+            if not cape_url:
+                return "no cape url"
             cape_response = requests.get(cape_url)
             if cape_response.status_code == 200:
                 cape_file = os.path.join(self.capes_folder, f"{self.uuid}_cape.png")
@@ -187,7 +196,7 @@ class MinecraftStatsHandler:
                     # print(f"Skipping recipe advancement: {advancement}")
                     continue
                 
-                if not "minecraft" in advancement:
+                if "minecraft" not in advancement:
                     continue
                 
                 if "root" in advancement:

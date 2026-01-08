@@ -3,6 +3,7 @@ import json
 import os
 from PlayerGrabber import PlayerGrabber
 from MinecraftStatsHandler import MinecraftStatsHandler
+from advancement_criteria_generator import build_multi_part_advancements
 import threading
 import time
 from datetime import datetime
@@ -40,6 +41,32 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 # Get the local IP address
 my_ip = socket.gethostbyname(socket.gethostname())
 
+def find_latest_jar(versions_dir="./versions"):
+    # ---------- Try versions/ directory ----------
+    if os.path.isdir(versions_dir):
+        subdirs = [
+            d for d in os.listdir(versions_dir)
+            if os.path.isdir(os.path.join(versions_dir, d))
+        ]
+
+        if subdirs:
+            for version in sorted(subdirs, reverse=True):
+                version_dir = os.path.join(versions_dir, version)
+
+                for f in os.listdir(version_dir):
+                    if "server" in f.lower() and f.endswith(".jar"):
+                        return os.path.join(version_dir, f)
+
+    # ---------- Fallback: parent directory ----------
+    parent_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
+
+    for f in os.listdir(parent_dir):
+        if "server" in f.lower() and f.endswith(".jar"):
+            return os.path.join(parent_dir, f)
+
+    raise FileNotFoundError(
+        "No *server*.jar found in ./versions or parent directory"
+    )
 
 def run_initial_processing():
     global stop_event
@@ -47,6 +74,8 @@ def run_initial_processing():
     Runs PlayerGrabber and MinecraftStatsHandler to process data when the app starts.
     """
     print("Starting initial data processing...")
+    
+    build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
 
     # Process player data using PlayerGrabber
     input_folder = "../world/playerdata"
@@ -128,7 +157,7 @@ with open('StatCrafterConfig.json') as config_file:
     config_data = json.load(config_file)
 
 # Apply configuration overrides
-SERVER_ADDRESS = config_data.get("minecraft_server_address", SERVER_ADDRESS)
+SERVER_ADDRESS = os.getenv("SERVER_ADDRESS", config_data.get("minecraft_server_address", SERVER_ADDRESS))
 MC_SERVER_PORT = config_data.get("minecraft_server_port", MC_SERVER_PORT)
 FLASK_PORT = config_data.get("port", FLASK_PORT)
 SERVER_HOST = config_data.get("server_ip", '0.0.0.0')
@@ -341,8 +370,7 @@ def player_page(uuid):
         }
         print(f"Stats file not found for {uuid}, using default.")
     
-    advancements = load_advancements(uuid)
-    return render_template('player.html', player=player, stats=stats, advancements=advancements, config=config_data)
+    return render_template('player.html', player=player, stats=stats, config=config_data)
 
 @app.route('/player/<uuid>/advancements')
 def player_advancements(uuid):
@@ -352,7 +380,7 @@ def player_advancements(uuid):
         return "Player not found", 404
     
     # Load the advancements for the player
-    advancements = load_advancements(uuid)
+    advancements = load_advancements(uuid) or {"multi_part_advancements": {}, "other_advancements": {}}
     
     return render_template('advancements.html', player=player, advancements=advancements, config=config_data)
 
