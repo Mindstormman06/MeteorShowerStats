@@ -6,6 +6,7 @@ from MinecraftStatsHandler import MinecraftStatsHandler
 from advancement_criteria_generator import build_multi_part_advancements
 import zipfile
 import threading
+import tempfile
 import time
 from datetime import datetime
 from mcstatus import JavaServer
@@ -25,6 +26,8 @@ STATS_DIR = os.path.join(BASE_DIR, 'output_data', 'simplified_stats')
 
 DATA_FILE_PATH = os.path.join(BASE_DIR, 'output_data', 'usernames.json')
 
+SERVER_INFO_FILE_PATH = os.path.join(BASE_DIR, 'output_data', 'server_info.json')
+
 SERVER_ADDRESS = "localhost"
 
 # Default ports (may be overridden by config)
@@ -41,6 +44,38 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 
 # Get the local IP address
 my_ip = socket.gethostbyname(socket.gethostname())
+
+_state_lock = threading.Lock()
+def load_server_info():
+    if not os.path.exists(SERVER_INFO_FILE_PATH):
+        return {}
+
+    try:
+        with open(SERVER_INFO_FILE_PATH, "r") as f:
+            data = json.load(f)
+            return data if isinstance(data, dict) else {}
+    except (json.JSONDecodeError, OSError):
+        # Corrupt or unreadable file → fail safe
+        return {}
+
+def save_server_info(state: dict):
+    os.makedirs(os.path.dirname(SERVER_INFO_FILE_PATH), exist_ok=True)
+
+    with _state_lock:
+        dir_name = os.path.dirname(SERVER_INFO_FILE_PATH)
+
+        # Write atomically
+        with tempfile.NamedTemporaryFile(
+            "w",
+            dir=dir_name,
+            delete=False
+        ) as tmp:
+            json.dump(state, tmp, indent=2)
+            tmp.flush()
+            os.fsync(tmp.fileno())
+
+        # Atomic replace (POSIX safe)
+        os.replace(tmp.name, SERVER_INFO_FILE_PATH)
 
 def jar_has_assets(jar_path: str) -> bool:
     try:
@@ -211,54 +246,93 @@ except Exception:
     
 # Server Clock
 def calculate_uptime():
-    """Calculate and return the server's uptime as a string."""
     try:
-        if not os.path.exists(FILE_PATH):
-            return "Log file not found."
+        state = load_server_info()
+        last_start = state.get("last_start")
+        last_stop = state.get("last_stop")
 
-        server_start_time = None
-        server_stop_time = None
+        # --- Try updating from latest.log ---
+        if os.path.exists(FILE_PATH):
+            try:
+                with open(FILE_PATH, "r") as f:
+                    lines = f.readlines()
 
-        with open(FILE_PATH, "r") as log_file:
-            lines = log_file.readlines()
+                # Read bottom-up
+                for line in reversed(lines):
+                    if "Starting minecraft server version" in line:
+                        # --- time ---
+                        ts = line.split("]")[0].strip("[")
+                        found = datetime.strptime(ts, "%H:%M:%S")
 
-        # Get today's date to associate with timestamps
-        today_date = datetime.now().date()
+                        now = datetime.now(tzinfo) if tzinfo else datetime.now()
+                        found = found.replace(
+                            year=now.year,
+                            month=now.month,
+                            day=now.day,
+                            tzinfo=tzinfo
+                        )
 
-        for line in lines:
-            if "Starting minecraft server" in line:
-                # Extract the timestamp and parse it
-                timestamp_str = line.split("]")[0].strip("[")  # Extracts HH:MM:SS
-                start_time = datetime.strptime(timestamp_str, "%H:%M:%S").time()
-                server_start_time = datetime.combine(today_date, start_time)
-                if tzinfo:
-                    server_start_time = server_start_time.replace(tzinfo=tzinfo)
-                server_stop_time = None  # Reset stop time if server restarts
-            elif "Stopping server" in line:
-                # Extract the timestamp and parse it
-                timestamp_str = line.split("]")[0].strip("[")
-                stop_time = datetime.strptime(timestamp_str, "%H:%M:%S").time()
-                server_stop_time = datetime.combine(today_date, stop_time)
-                if tzinfo:
-                    server_stop_time = server_stop_time.replace(tzinfo=tzinfo)
+                        iso = found.isoformat()
 
-        if server_start_time:
-            if server_stop_time:
-                uptime = server_stop_time - server_start_time
-            else:
-                # If the server is running, calculate uptime until now
-                current_time = datetime.now(tzinfo) if tzinfo else datetime.now()
-                uptime = current_time - server_start_time
+                        # --- version ---
+                        # Everything after "version "
+                        version = line.split("version", 1)[1].strip()
 
-            # Format uptime as days, hours, minutes, and seconds
-            days = uptime.days
-            hours, remainder = divmod(uptime.seconds, 3600)
-            minutes, seconds = divmod(remainder, 60)
-            return f'{days} Days, {hours:02}:{minutes:02}:{seconds:02}'
+                        if iso != last_start:
+                            state["last_start"] = iso
+                            state["last_stop"] = None
+                            state["server_up"] = True
+                            state["server_version"] = version
+                            save_server_info(state)
 
-        return "No start event found in the logs."
+                        last_start = iso
+                        last_stop = None
+                        break
+
+
+                    elif "Stopping server" in line:
+                        ts = line.split("]")[0].strip("[")
+                        found = datetime.strptime(ts, "%H:%M:%S")
+
+                        now = datetime.now(tzinfo) if tzinfo else datetime.now()
+                        found = found.replace(
+                            year=now.year,
+                            month=now.month,
+                            day=now.day,
+                            tzinfo=tzinfo
+                        )
+
+                        iso = found.isoformat()
+                        if iso != last_stop:
+                            state["last_stop"] = iso
+                            state["server_up"] = False
+                            save_server_info(state)
+
+                        last_stop = iso
+                        break
+
+            except Exception:
+                pass  # log parsing failed → fall back to stored state
+
+        # --- Calculate uptime from stored state ---
+        if not last_start or not state.get("server_up", False):
+            return "Offline"
+
+        start_dt = datetime.fromisoformat(last_start)
+        stop_dt = datetime.fromisoformat(last_stop) if last_stop else None
+
+        end_time = stop_dt or (datetime.now(tzinfo) if tzinfo else datetime.now())
+        uptime = end_time - start_dt
+
+        days = uptime.days
+        hours, rem = divmod(uptime.seconds, 3600)
+        minutes, seconds = divmod(rem, 60)
+
+        return f"{days} Days, {hours:02}:{minutes:02}:{seconds:02}"
+
     except Exception as e:
         return f"Error: {e}"
+
 
 @app.route("/uptime", methods=["GET"])
 def get_uptime():
@@ -309,26 +383,13 @@ def get_active_players_using_mcstatus():
         print(f"Error querying server for active players: {e}")
         return set()
 
-
-
-
 # Get Game Version
-def get_minecraft_version(level_dat_path):
+def get_minecraft_version():
     try:
-        # Load the level.dat file
-        level_data = nbtlib.load(level_dat_path)
-
-        # Look for the "Version" field
-        if 'Version' in level_data['Data']:
-            version_data = level_data['Data']['Version']
-            version_name = version_data.get('Name', 'Unknown')
-            return f"{version_name}"
-        else:
-            return "Version information not found in level.dat."
-    except Exception as e:
-        return f"Error reading level.dat: {e}"
-
-
+        state = load_server_info()
+        return state.get("server_version", "Unknown")
+    except Exception:
+        return "Unknown"
 
 # Get online players!
 @app.route('/online_players', methods=['GET'])
