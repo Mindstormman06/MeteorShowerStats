@@ -41,7 +41,7 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 # Get the local IP address
 my_ip = socket.gethostbyname(socket.gethostname())
 
-def find_latest_jar(versions_dir="./versions"):
+def find_latest_jar(versions_dir="../versions"):
     # ---------- Try versions/ directory ----------
     if os.path.isdir(versions_dir):
         subdirs = [
@@ -54,14 +54,14 @@ def find_latest_jar(versions_dir="./versions"):
                 version_dir = os.path.join(versions_dir, version)
 
                 for f in os.listdir(version_dir):
-                    if "server" in f.lower() and f.endswith(".jar"):
+                    if f.endswith(".jar"):
                         return os.path.join(version_dir, f)
 
     # ---------- Fallback: parent directory ----------
     parent_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
 
     for f in os.listdir(parent_dir):
-        if "server" in f.lower() and f.endswith(".jar"):
+        if f.endswith(".jar"):
             return os.path.join(parent_dir, f)
 
     raise FileNotFoundError(
@@ -72,14 +72,14 @@ def run_initial_processing():
     """
     Runs PlayerGrabber and MinecraftStatsHandler to process data when the app starts.
     """
-    print("Starting initial data processing...")
+    print("Starting initial data processing...", flush=True)
     
     latest_server_jar = None
     while not latest_server_jar:
         try:
             latest_server_jar = find_latest_jar("../versions")
         except:
-            print("trying again to find server jar")
+            print("trying again to find server jar", flush=True)
             time.sleep(5)
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
