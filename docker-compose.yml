@@ -58,6 +58,7 @@ services:
 
         if [ ! -d MeteorShowerStats ]; then
             echo 'Cloning StatCrafter...' &&
+            git config --global --add safe.directory /data/MeteorShowerStats
             git clone https://github.com/Mindstormman06/MeteorShowerStats.git;
         else
             echo 'StatCrafter already exists';
@@ -69,10 +70,7 @@ services:
         pip install --upgrade pip &&
         pip install -r requirements.txt &&
 
-        mkdir -p /data/output_data &&
-
         echo 'Starting StatCrafter...' &&
         python app.py
         "
     restart: unless-stopped
-    

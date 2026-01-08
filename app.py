@@ -77,6 +77,8 @@ def run_initial_processing():
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
 
+    
+def data_loop():
     # Process player data using PlayerGrabber
     input_folder = "../world/playerdata"
     output_folder = "./output_data/playerdata"
@@ -387,7 +389,8 @@ def player_advancements(uuid):
 
 if __name__ == "__main__":
     # Run initial data processing
-    processing_thread = threading.Thread(target=run_initial_processing)
+    run_initial_processing()
+    processing_thread = threading.Thread(target=data_loop)
     processing_thread.start()
     # Start the Flask app
     try:
