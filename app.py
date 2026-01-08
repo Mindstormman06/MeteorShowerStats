@@ -80,6 +80,7 @@ def run_initial_processing():
             latest_server_jar = find_latest_jar("../versions")
         except:
             print("trying again to find server jar")
+            time.sleep(5)
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
     
