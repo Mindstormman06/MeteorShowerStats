@@ -55,10 +55,10 @@ services:
         apt-get install -y git &&
 
         cd /data &&
+        git config --global --add safe.directory /data/MeteorShowerStats
 
         if [ ! -d MeteorShowerStats ]; then
             echo 'Cloning StatCrafter...' &&
-            git config --global --add safe.directory /data/MeteorShowerStats
             git clone https://github.com/Mindstormman06/MeteorShowerStats.git;
         else
             echo 'StatCrafter already exists';
@@ -68,7 +68,7 @@ services:
         git switch cyberschooled &&
 
         pip install --upgrade pip &&
-        pip install -r requirements.txt &&
+        pip install -r requirements.txt --root-user-action=ignore &&
 
         echo 'Starting StatCrafter...' &&
         python app.py
