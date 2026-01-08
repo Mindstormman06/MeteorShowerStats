@@ -31,7 +31,7 @@ services:
       ALLOW_FLIGHT: "true"
       ONLINE_MODE: "false"
     volumes:
-      - "minecraft_data:/data"
+      - "./data:/data"
     restart: unless-stopped
 
   statcrafter:
@@ -40,7 +40,7 @@ services:
     ports:
         - "5000:5000"
     volumes:
-      - minecraft_data:/data
+      - ./data:/data
     working_dir: /data
     depends_on:
       - mc-forever
@@ -75,6 +75,4 @@ services:
         python app.py
         "
     restart: unless-stopped
-
-volumes:
-  minecraft_data:
+    
