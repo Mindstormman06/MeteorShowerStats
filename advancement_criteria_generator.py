@@ -78,7 +78,7 @@ def build_multi_part_advancements(jar_path, output_path="index.json"):
         try:    
            lang = load_en_us(jar_path)
         except:
-            print("unable to find land, retrying")
+            print("unable to find lang, retrying")
             time.sleep(5)
 
     multi_part_index = {}

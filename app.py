@@ -4,6 +4,7 @@ import os
 from PlayerGrabber import PlayerGrabber
 from MinecraftStatsHandler import MinecraftStatsHandler
 from advancement_criteria_generator import build_multi_part_advancements
+import zipfile
 import threading
 import time
 from datetime import datetime
@@ -41,31 +42,42 @@ logging.getLogger('werkzeug').setLevel(logging.ERROR)
 # Get the local IP address
 my_ip = socket.gethostbyname(socket.gethostname())
 
+def jar_has_assets(jar_path: str) -> bool:
+    try:
+        with zipfile.ZipFile(jar_path) as zf:
+            # Look for assets/ directory entry
+            return any(
+                name.startswith("assets/")
+                for name in zf.namelist()
+            )
+    except zipfile.BadZipFile:
+        return False
+
 def find_latest_jar(versions_dir="../versions"):
     # ---------- Try versions/ directory ----------
     if os.path.isdir(versions_dir):
-        subdirs = [
-            d for d in os.listdir(versions_dir)
-            if os.path.isdir(os.path.join(versions_dir, d))
-        ]
+        for version in sorted(os.listdir(versions_dir), reverse=True):
+            version_dir = os.path.join(versions_dir, version)
+            if not os.path.isdir(version_dir):
+                continue
 
-        if subdirs:
-            for version in sorted(subdirs, reverse=True):
-                version_dir = os.path.join(versions_dir, version)
-
-                for f in os.listdir(version_dir):
-                    if f.endswith(".jar"):
-                        return os.path.join(version_dir, f)
+            for f in os.listdir(version_dir):
+                if f.endswith(".jar"):
+                    jar_path = os.path.join(version_dir, f)
+                    if jar_has_assets(jar_path):
+                        return jar_path
 
     # ---------- Fallback: parent directory ----------
     parent_dir = os.path.abspath(os.path.join(os.getcwd(), ".."))
-
-    for f in os.listdir(parent_dir):
-        if f.endswith(".jar"):
-            return os.path.join(parent_dir, f)
+    if os.path.isdir(parent_dir):
+        for f in sorted(os.listdir(parent_dir), reverse=True):
+            if f.endswith(".jar"):
+                jar_path = os.path.join(parent_dir, f)
+                if jar_has_assets(jar_path):
+                    return jar_path
 
     raise FileNotFoundError(
-        "No *server*.jar found in ./versions or parent directory"
+        "No Minecraft server JAR with assets/ found in versions/ or parent directory"
     )
 
 def run_initial_processing():
@@ -82,7 +94,7 @@ def run_initial_processing():
             print("trying again to find server jar")
             time.sleep(5)
     
-    build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
+    build_multi_part_advancements(latest_server_jar, "static/advancement_criteria.json")
     
     file_path = "./output_data/usernames.json"
     default_data = {
