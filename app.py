@@ -69,7 +69,6 @@ def find_latest_jar(versions_dir="./versions"):
     )
 
 def run_initial_processing():
-    global stop_event
     """
     Runs PlayerGrabber and MinecraftStatsHandler to process data when the app starts.
     """
@@ -102,6 +101,10 @@ def run_initial_processing():
 
     
 def data_loop():
+    """
+    Runs PlayerGrabber and MinecraftStatsHandler to process data while the app runs.
+    """
+    global stop_event
     # Process player data using PlayerGrabber
     input_folder = "../world/playerdata"
     output_folder = "./output_data/playerdata"
