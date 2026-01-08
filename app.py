@@ -319,9 +319,8 @@ def calculate_uptime():
             return "Offline"
 
         start_dt = datetime.fromisoformat(last_start)
-        stop_dt = datetime.fromisoformat(last_stop) if last_stop else None
 
-        end_time = stop_dt or (datetime.now(tzinfo) if tzinfo else datetime.now())
+        end_time = (datetime.now(tzinfo) if tzinfo else datetime.now())
         uptime = end_time - start_dt
 
         days = uptime.days
