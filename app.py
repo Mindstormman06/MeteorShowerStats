@@ -83,6 +83,22 @@ def run_initial_processing():
             print("trying again to find server jar")
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")
+    
+    file_path = "./output_data/usernames.json"
+    default_data = {
+        "usermap": {},
+        "uuids": [],
+        "usernames": []
+    }
+
+    # Make sure the folder exists
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    # Check if file exists and has content
+    if not os.path.isfile(file_path) or os.path.getsize(file_path) == 0:
+        # File missing or empty → create with default data
+        with open(file_path, "w", encoding="utf-8") as f:
+            json.dump(default_data, f, indent=4)
 
     
 def data_loop():
