@@ -9,7 +9,7 @@ services:
     environment:
       EULA: "TRUE"
       TYPE: "FABRIC"
-      VERSION: "1.21.1"
+      VERSION: "1.21.11"
       ENABLE_RECON: "true"
       RCON_PASSWORD: "test"
       MEMORY: "8192M"
