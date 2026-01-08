@@ -79,8 +79,7 @@ def run_initial_processing():
     while not latest_server_jar:
         try:
             latest_server_jar = find_latest_jar("../versions")
-        except Exception as err:
-            print(err)
+        except:
             print("trying again to find server jar")
     
     build_multi_part_advancements(find_latest_jar("../versions"), "static/advancement_criteria.json")

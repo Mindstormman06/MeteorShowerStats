@@ -67,7 +67,7 @@ services:
         cd MeteorShowerStats &&
         git switch cyberschooled &&
 
-        pip install --upgrade pip &&
+        pip install --upgrade pip --root-user-action=ignore &&
         pip install -r requirements.txt --root-user-action=ignore &&
 
         echo 'Starting StatCrafter...' &&
