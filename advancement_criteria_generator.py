@@ -1,7 +1,7 @@
 import zipfile
 import json
 from pathlib import PurePosixPath
-
+import time
 # -----------------------------
 # Load en_us language file
 # -----------------------------
@@ -73,7 +73,12 @@ def extract_fields(adv_json, lang):
 # Build multi-part advancement index
 # -----------------------------
 def build_multi_part_advancements(jar_path, output_path="index.json"):
-    lang = load_en_us(jar_path)
+    while not lang:
+        try:    
+           lang = load_en_us(jar_path)
+        except:
+            print("unable to find land, retrying")
+            time.sleep(5)
 
     multi_part_index = {}
     other_index = {}
