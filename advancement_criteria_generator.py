@@ -73,6 +73,7 @@ def extract_fields(adv_json, lang):
 # Build multi-part advancement index
 # -----------------------------
 def build_multi_part_advancements(jar_path, output_path="index.json"):
+    lang = None
     while not lang:
         try:    
            lang = load_en_us(jar_path)
