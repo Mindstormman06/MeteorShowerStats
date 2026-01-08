@@ -68,13 +68,16 @@ class MinecraftStatsHandler:
             elif response.status_code == 404:
                 return "Error: UUID not found. Check if the UUID is correct."
             elif response.status_code == 204:
-                #"UUID not found, possible offline mode enabled"
-                data = {
-                    "name" : "Unknown account (offline)",
-                } 
-                self.username = data['name']
-                username_map[self.uuid] = self.username
-                return data 
+                if os.getenv("OFFLINE_SUPPORTED", True):    
+                    #"UUID not found, possible offline mode enabled"
+                    data = {
+                        "name" : "Unknown account (offline)",
+                    } 
+                    self.username = data['name']
+                    username_map[self.uuid] = self.username
+                    return data 
+                else: 
+                    return "No content found. The UUID might not exist."
             else:
                 return f"Error: {response.status_code} - {response.reason}"
         except requests.exceptions.RequestException as e:

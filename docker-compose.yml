@@ -46,6 +46,7 @@ services:
       - mc-forever
     environment:
       SERVER_ADDRESS: mc-forever # uses the name of the other container
+      OFFLINE_SUPPORTED: False # uses the name of the other container
     command: >
         bash -c "
         set -e &&
